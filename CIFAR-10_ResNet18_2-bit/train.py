@@ -97,10 +97,10 @@ parser.add_argument('--quant_bound', type=float,
                     default=None, help='Quantization Range Bound')
 parser.add_argument('--number_levels', type=float,
                     default=None, help='Number of levels')
-parser.add_argument('-O', '--offset_noise', type=float, default=None,
-                    metavar='N', help='Offset Noise')
-parser.add_argument('-n', '--bitline_noise', type=float, default=None,
-                    metavar='N', help='Bitline Noise')
+#parser.add_argument('-O', '--offset_noise', type=float, default=None,
+#                    metavar='N', help='Offset Noise')
+#parser.add_argument('-n', '--bitline_noise', type=float, default=None,
+#                    metavar='N', help='Bitline Noise')
 parser.add_argument('-nb', '--num_bits', type=int, default=None,
                     metavar='N', help='Num_Bits')
 parser.add_argument('-nf', '--num_frac', type=int, default=None,
@@ -202,7 +202,7 @@ def main():
     # Prepare the model
     logger.info('==> Building model..\n')
     model_cfg = getattr(models, args.model)
-    model_cfg.kwargs.update({"num_classes": num_classes, "wbit": args.wbit, "abit":args.abit, "alpha_init": args.alpha_init, "mode": args.q_mode, "k": args.k, "ch_group":args.group_ch, "push":False, "bitlinenoise": args.bitline_noise, "offsetnoise": args.offset_noise, "levels": args.number_levels, "depth": args.sram_depth, "voltage_swing": args.voltage_swing })
+    model_cfg.kwargs.update({"num_classes": num_classes, "wbit": args.wbit, "abit":args.abit, "alpha_init": args.alpha_init, "mode": args.q_mode, "k": args.k, "ch_group":args.group_ch, "push":False, "bitlinenoise": args.bitline_noise, "offsetnoise": args.offset_noise, "levels": args.number_levels, "depth": args.sram_depth})
     net = model_cfg.base(*model_cfg.args, **model_cfg.kwargs) 
 
     logger.info(net)
