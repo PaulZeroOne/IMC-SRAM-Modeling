@@ -249,6 +249,7 @@ class sawb_w2_Func(torch.autograd.Function):
         super(sawb_w2_Func, self).__init__()
         self.alpha_w = alpha_w 
 
+    #@staticmethod
     def forward(self, input):
         self.save_for_backward(input)
         
@@ -260,7 +261,8 @@ class sawb_w2_Func(torch.autograd.Function):
         output[input.ge(-self.alpha_w + self.alpha_w/3)*input.lt(0)] = -self.alpha_w/3
 
         return output
-    
+
+    #@staticmethod
     def backward(self, grad_output):
     
         grad_input = grad_output.clone()
@@ -312,7 +314,8 @@ def quant_XNORSRAM_2d(x,levels,edges,num_edges,bitlinenoise,offset):
      edges = edges.unsqueeze(0).repeat(x.shape[1],1).cuda()
   
      for i in range(num_edges):
-         offsets = offset[i].unsqueeze(1).repeat(1,num_edges).cuda()
+         #offsets = offset[i].unsqueeze(1).repeat(1,num_edges).cuda()
+         offsets = offset[i].unsqueeze(0).repeat(1,num_edges).cuda()
          edges = edges + offsets
          y= edges[:,i].unsqueeze(0).repeat(x.shape[0],1)
          sum += torch.gt(x,y)
@@ -327,10 +330,18 @@ def quant_XNORSRAM_4d(x,levels,edges,num_edges,bitlinenoise,offset):
      edges = edges.unsqueeze(0).repeat(x.shape[1],1).cuda()
      
      for i in range(num_edges):
-         offsets = offset[i].unsqueeze(1).repeat(1,num_edges).cuda()
-         edges = edges + offsets
-         y= edges[:,i].unsqueeze(0).unsqueeze(2).unsqueeze(3).repeat(x.shape[0],1,x.shape[2],x.shape[3])
-         sum += torch.gt(x,y)
+
+      #print("NUM_EDGES TYPE:",type(num_edges))
+      #print("NUM_EDGES:",num_edges)
+      #print("offset dim:",type(offset[i]))#.dim().unsqueeze(1).repeat(1,num_edges).cuda())
+
+      #offset = torch.tensor(-2.0553)
+      #print(offset.unsqueeze(0))#.dim())
+      #offsets = offset[i].unsqueeze(1).repeat(1,num_edges).cuda()
+      offsets = offset[i].unsqueeze(0).repeat(1,num_edges).cuda()
+      edges = edges + offsets
+      y= edges[:,i].unsqueeze(0).unsqueeze(2).unsqueeze(3).repeat(x.shape[0],1,x.shape[2],x.shape[3])
+      sum += torch.gt(x,y)
 
      output = levels[sum]
      return output
@@ -371,20 +382,27 @@ class Conv2d_2bit(nn.Conv2d):
         n_levels = num_levels
 
         step = 2*bound/(n_levels-1)
-        levels = np.linspace(-bound-step,bound,n_levels+1)
+
+        #print("BOUND:",type(bound))
+        #print("N_LEVELS:",type(n_levels))
+        #print("STEP:",type(step))
+
+        levels = np.linspace(-bound-step,bound,int(n_levels)+1)
         levels[0] = -bound
         levels = torch.from_numpy(levels).cuda().float()
         levels = levels * 100.0
         levels = levels.long()
         levels = levels / 100.0
 
-        edges = np.linspace(-bound-0.5*step,bound-0.5*step,n_levels)
+        edges = np.linspace(-bound-0.5*step,bound-0.5*step,int(n_levels))
         edges = torch.from_numpy(edges).cuda().float()
         edges = edges * 100.0
         edges = edges.long()
         edges = edges / 100.0
 
+        #sawb_w2_Func_temp = sawb_w2_Func(alpha_w=self.alpha_w)
         weight = sawb_w2_Func(alpha_w=self.alpha_w)(w_l)
+        #weight = sawb_w2_Func.apply(w_l)
         alpha_tmp = self.alpha_w
               
         out = 0
@@ -432,7 +450,9 @@ class Conv2d_2bit(nn.Conv2d):
                             if self.first_time[self.num_srams]:
                                 self.offset.append(torch.randn(self.out_channels, device="cuda:0")*self.offsetnoise)
                                 self.first_time[self.num_srams] = 0
-                            out = quant_XNORSRAM_4d(ps, levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams], 1)
+                            #out = quant_XNORSRAM_4d(ps, levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams], 1)
+                            print("NUM_SRAMS : ",self.num_srams)
+                            out = quant_XNORSRAM_4d(ps, levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams])
                             self.activation_list.append(out)
                             self.num_srams += 1
                              
@@ -460,18 +480,28 @@ class Conv2d_2bit(nn.Conv2d):
                                     if self.first_time[self.num_srams]:
                                         self.offset.append(torch.randn(self.out_channels,device="cuda:0")*self.offsetnoise)
                                         self.first_time[self.num_srams] = 0
-                                    out = quant_XNORSRAM_4d(ps,levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams], 1)
+                                    #out = quant_XNORSRAM_4d(ps,levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams], 1)
+                                    out = quant_XNORSRAM_4d(ps,levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams])
                                     self.activation_list.append(out)
                                     self.num_srams +=1                                    
                   
                     temp = torch.sum(torch.stack(self.activation_list), axis=0)*(1./9)               
                     list_activation.append(temp)   
-            activation = (4*list_activation[0] + 2*list_activation[1] + 2*list_activation[2] + 1*list_activation[3])*alpha_tmp
 
+            #print("CONV_2D ACTIVATION_LIST DIM: ",list_activation[0].dim())
+            #print("CONV_2D ACTIVATION_LIST SIZE: ",list_activation[0].size())
+            #print("CONV_2D ACTIVATION_LIST LEN: ",len(list_activation))
+
+            activation = (4*list_activation[0] + 2*list_activation[1] + 2*list_activation[2] + 1*list_activation[3])*alpha_tmp
+            
+            #print("CONV_2D IF")
         else:
              activation = nn.functional.conv2d(input, weight, None, self.stride,
                                    self.padding, self.dilation, self.groups)
+             #print("CONV_2D ELSE")
 
+        print("CONV2D ACT DIM:",activation.dim())
+        print("CONV2D ACT SIZE:",activation.size())
         if not self.bias is None:
              self.bias.org=self.bias.data.clone()
              activation += self.bias.view(1, -1, 1, 1).expand_as(activation)   
@@ -510,20 +540,21 @@ class Linear2bit(nn.Linear):
         n_frac = 1
 
         base = 2. **(n_bits-1)/(2. **(n_frac +1 ) - 1. )
-        activation = 0
+        #activation = 0
+        activation = torch.tensor([0]).unsqueeze(1)
 
         bound = Bound
         n_levels = num_levels
 
         step = bound/(n_levels-1)
-        levels = np.linspace(-bound-2*step,bound,n_levels+1,dtype='float64')
+        levels = np.linspace(-bound-2*step,bound,int(n_levels)+1,dtype='float64')
         levels[0] = -bound
         levels = torch.from_numpy(levels).cuda()
         levels = levels*100.0
         levels = levels.long()
         levels = levels/100.0
 
-        edges = np.linspace(-bound-step,bound-step,n_levels,dtype='float64')
+        edges = np.linspace(-bound-step,bound-step,int(n_levels),dtype='float64')
         edges = torch.from_numpy(edges).cuda()
         edges = edges * 100.0
         edges = edges.long()
@@ -555,11 +586,19 @@ class Linear2bit(nn.Linear):
                     self.activation_list.append(out)
                 temp = torch.sum(torch.stack(self.activation_list), axis=0)*(1./9)
                 list_activation.append(temp)
-
-                   
+                
+        activation = list_activation[0]
+        print("LINEAR LIST_ACTIVATION DIM:",list_activation[0].dim())
+        print("LINEAR LIST_ACTIVATION SIZE:",list_activation[0].size())
+        print("LINEAR LIST_ACTIVATION LEN:",len(list_activation))
+              
         if not self.bias is None:
             self.bias.org=self.bias.data.clone()
-            activation += self.bias.view(1, -1).expand_as(activation)
+            #activation += self.bias.view(1, -1).expand_as(activation)
+            print("BIAS DIM:",self.bias.view(1, -1).dim())
+            print("BIAS SIZE:",self.bias.view(1, -1).size())     
+            print("BIAS :",self.bias.view(1, -1))     
+            print("EXPANDED DIM: ",self.bias.view(1, -1).expand_as(activation).dim())
 
 
 
