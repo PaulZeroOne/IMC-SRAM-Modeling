@@ -11,6 +11,7 @@ import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
 from torchvision import datasets
+from torchvision import models as torch_models
 import torchvision.transforms as transforms
 import os
 import time
@@ -215,24 +216,40 @@ def main():
     if args.fine_tune:
         new_state_dict = OrderedDict()
         logger.info("=> loading checkpoint '{}'".format(args.resume))
-        checkpoint = torch.load(args.resume)
-        for k, v in checkpoint['state_dict'].items():
-            name = k
-            new_state_dict[name] = v
-        
-        state_tmp = net.state_dict()
 
-        if 'state_dict' in checkpoint.keys():
-            state_tmp.update(new_state_dict)
+        #checkpoint = torch.load(args.resume)
+        #checkpoint = model.load_state_dict(checkpoint)
+
+        #for key in checkpoint:
+        #  print(key)
+
+        #checkpoint = torch.hub.load('pytorch/vision:v0.5.0','resnet18', pretrained=True)
+        #checkpoint = torch_models.resnet18(pretrained=True)
+        #checkpoint = checkpoint.cuda()
+
+        #for k, v in checkpoint['state_dict'].items():
+        #    name = k
+        #    new_state_dict[name] = v
         
-            net.load_state_dict(state_tmp)
-            logger.info("=> loaded checkpoint '{} | Acc={}'".format(args.resume, checkpoint['acc']))
-        else:
-            raise ValueError('no state_dict found')  
+        #state_tmp = net.state_dict()
+
+        #if 'state_dict' in checkpoint.keys():
+        #    state_tmp.update(new_state_dict)
+        
+        #    net.load_state_dict(state_tmp)
+        #    logger.info("=> loaded checkpoint '{} | Acc={}'".format(args.resume, checkpoint['acc']))
+        #else:
+        #    raise ValueError('no state_dict found')  
+
+    #net = torch.load_state_dict(args.resume)
+    net = torch_models.resnet18(pretrained=True)
+    
 
     if args.use_cuda:
-        if args.ngpu > 1:
+        if args.ngpu >= 1:
             net = torch.nn.DataParallel(net)
+
+
 
     # Loss function
     net = net.cuda()
@@ -280,6 +297,9 @@ def main():
         current_lr, current_momentum = adjust_learning_rate_schedule(
             optimizer, epoch, args.gammas, args.schedule, args.lr, args.momentum)
         
+        print("TRAINING ....")
+
+
         # Training phase
         train_results = train(trainloader, net, criterion, optimizer, epoch, args)
         # clipped_bound.append(train_results['clp_alpha'])
@@ -293,7 +313,7 @@ def main():
 
 
         if is_best:
-            # print(f'=> Epoch:{epoch} - Bset acc obtained: {best_acc}, Saving..')
+            print(f'=> Epoch:{epoch} - Bset acc obtained: {best_acc}, Saving..')
             best_acc = test_acc
 
         state = {

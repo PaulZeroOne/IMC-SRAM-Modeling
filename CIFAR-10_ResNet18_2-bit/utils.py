@@ -205,6 +205,8 @@ def train(trainloader, net, criterion, optimizer, epoch, args):
                     reg_alpha += param.item() ** 2
             loss += a_lambda * (reg_alpha)
 
+        loss = Variable(loss, requires_grad= True)
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
