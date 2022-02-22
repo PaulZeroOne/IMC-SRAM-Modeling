@@ -451,7 +451,9 @@ class Conv2d_2bit(nn.Conv2d):
                                 self.offset.append(torch.randn(self.out_channels, device="cuda:0")*self.offsetnoise)
                                 self.first_time[self.num_srams] = 0
                             #out = quant_XNORSRAM_4d(ps, levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams], 1)
-                            print("NUM_SRAMS : ",self.num_srams)
+
+                            #print("NUM_SRAMS : ",self.num_srams)
+
                             out = quant_XNORSRAM_4d(ps, levels,edges,len(edges), self.bitlinenoise, self.offset[self.num_srams])
                             self.activation_list.append(out)
                             self.num_srams += 1
@@ -500,8 +502,9 @@ class Conv2d_2bit(nn.Conv2d):
                                    self.padding, self.dilation, self.groups)
              #print("CONV_2D ELSE")
 
-        print("CONV2D ACT DIM:",activation.dim())
-        print("CONV2D ACT SIZE:",activation.size())
+        #print("CONV2D ACT DIM:",activation.dim())
+        #print("CONV2D ACT SIZE:",activation.size())
+
         if not self.bias is None:
              self.bias.org=self.bias.data.clone()
              activation += self.bias.view(1, -1, 1, 1).expand_as(activation)   
@@ -588,17 +591,19 @@ class Linear2bit(nn.Linear):
                 list_activation.append(temp)
                 
         activation = list_activation[0]
-        print("LINEAR LIST_ACTIVATION DIM:",list_activation[0].dim())
-        print("LINEAR LIST_ACTIVATION SIZE:",list_activation[0].size())
-        print("LINEAR LIST_ACTIVATION LEN:",len(list_activation))
+
+        #print("LINEAR LIST_ACTIVATION DIM:",list_activation[0].dim())
+        #print("LINEAR LIST_ACTIVATION SIZE:",list_activation[0].size())
+        #print("LINEAR LIST_ACTIVATION LEN:",len(list_activation))
               
         if not self.bias is None:
             self.bias.org=self.bias.data.clone()
             #activation += self.bias.view(1, -1).expand_as(activation)
-            print("BIAS DIM:",self.bias.view(1, -1).dim())
-            print("BIAS SIZE:",self.bias.view(1, -1).size())     
-            print("BIAS :",self.bias.view(1, -1))     
-            print("EXPANDED DIM: ",self.bias.view(1, -1).expand_as(activation).dim())
+
+            #print("BIAS DIM:",self.bias.view(1, -1).dim())
+            #print("BIAS SIZE:",self.bias.view(1, -1).size())     
+            #print("BIAS :",self.bias.view(1, -1))     
+            #print("EXPANDED DIM: ",self.bias.view(1, -1).expand_as(activation).dim())
 
 
 
