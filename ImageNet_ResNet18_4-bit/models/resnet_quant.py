@@ -32,10 +32,10 @@ class BasicBlock_quant(nn.Module):
             )
 
     def forward(self, x):
-        out = self.bn1(self.conv1(x))
-        out = self.conv2(out)
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.conv2(out))
         out += self.shortcut(x)
-        out = self.bn2(out)
+        out = F.relu(self.bn2(out))
         return out
 
 
