@@ -99,7 +99,7 @@ model_dict = {
         'ResNet18': ResNet18(1000),
         'ResNet_multibit2bit': resnet18b_quant(num_classes=1000, w_bits=2, a_bits=2),
         'ResNet_multibit4bit': resnet18b_quant_qfl(num_classes=1000, w_bits=4, a_bits=4),
-        'MobileNet': MobileNet(1000),
+        'MobileNet_a4_w4': MobileNet(4, 4, 1000),
         }
 model = model_dict[args.arch]
 if args.evaluate is None:
