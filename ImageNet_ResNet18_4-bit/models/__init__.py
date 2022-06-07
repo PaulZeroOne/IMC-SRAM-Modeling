@@ -17,3 +17,4 @@ from .mobilenet import *
 from .mobilenetv2 import *
 from .efficientnet import *
 from .ResNet_multibit import *
+from .squeezenext import *
